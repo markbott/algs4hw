@@ -1,5 +1,7 @@
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import edu.princeton.cs.algs4.Bag;
 import edu.princeton.cs.algs4.Digraph;
@@ -11,6 +13,7 @@ public class WordNet {
     private final Map<String, Bag<Integer>> word2id = new HashMap<>();
 
     private final Digraph hypers;
+    private final SAP sap;
 
     // constructor takes the name of the two input files
     public WordNet(String synsets, String hypernyms) {
@@ -68,13 +71,26 @@ public class WordNet {
         
         Topological topo = new Topological(hypers);
         if(!topo.hasOrder()) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("not a DAG");
         }
+        
+        int roots = 0;
+        for(int v = 0; v < hypers.V(); v++) {
+            if(hypers.indegree(v) > 0 && hypers.outdegree(v) == 0) {
+                roots++;
+                
+                if(roots > 1) {
+                    throw new IllegalArgumentException("multiple roots");
+                }
+            }
+        }
+        
+        sap = new SAP(hypers);
     }
 
     // returns all WordNet nouns
     public Iterable<String> nouns() {
-        Bag<String> nouns = new Bag<>();
+        Set<String> nouns = new HashSet<>();
         id2word.values().forEach(synset -> {         
             for(String n : synset.split(" ")) {
                 nouns.add(n);
@@ -98,7 +114,6 @@ public class WordNet {
         Bag<Integer> ids1 = word2id.get(nounA);
         Bag<Integer> ids2 = word2id.get(nounB);
 
-        SAP sap = new SAP(hypers);
         return sap.length(ids1, ids2);
     }
 
@@ -113,7 +128,6 @@ public class WordNet {
         Bag<Integer> ids1 = word2id.get(nounA);
         Bag<Integer> ids2 = word2id.get(nounB);
 
-        SAP sap = new SAP(hypers);
         int ancestor = sap.ancestor(ids1, ids2);
 
         if (ancestor == -1) {
@@ -130,14 +144,14 @@ public class WordNet {
 
     // do unit testing of this class
     public static void main(String[] args) {
-        /*
+         /*
          WordNet w = new WordNet(
-           "synsets11.txt",
-           "hypernyms11AmbiguousAncestor.txt"
+           "synsets.txt",
+           "hypernyms3InvalidTwoRoots.txt"
          );
-         
-         StdOut.println(w.sap("a", "b"));
-         StdOut.println(w.distance("a", "b"));
+         int sum = 0;
+         for(String x : w.nouns()) { sum++; }
+         StdOut.println(sum);
          */
     }
 

@@ -6,6 +6,8 @@ import edu.princeton.cs.algs4.Queue;
 
 public class SAP {
     private final Digraph G;
+    private final int G_V;
+    private final Map<Integer, BFSResult> bfses = new HashMap<>();
 
     private static class AncestorInfo {
         int ancestor;
@@ -27,6 +29,7 @@ public class SAP {
     public SAP(Digraph G) {
         checkNull(G);
         this.G = new Digraph(G);
+        G_V = G.V();
     }
 
     // length of shortest ancestral path between v and w; -1 if no such path
@@ -101,7 +104,12 @@ public class SAP {
         for (int a : vertices) {
             checkVertex(a);
 
+            if(bfses.containsKey(a)) {
+                continue;
+            }
+            
             boolean found = false;
+            
             for (BFSResult bfs : bfses.values()) {
                 if (bfs.marked[a]) {
                     bfses.put(a, bfs);
@@ -126,8 +134,6 @@ public class SAP {
         checkNull(v);
         checkNull(w);
         
-        Map<Integer, BFSResult> bfses = new HashMap<>();
-
         buildBFSInfo(v, bfses);
         buildBFSInfo(w, bfses);
 
@@ -220,7 +226,7 @@ public class SAP {
     }
 
     private void checkVertex(int v) {
-        if (v < 0 || v >= G.V())
+        if (v < 0 || v >= G_V)
             throw new IllegalArgumentException("invalid vertex");
     }
 }
