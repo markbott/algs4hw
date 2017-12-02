@@ -2,26 +2,44 @@ import edu.princeton.cs.algs4.DirectedEdge;
 import edu.princeton.cs.algs4.Picture;
 
 public class SeamCarver {
-    private Picture picture;
+    //private Picture picture;
+    private int [][] newPicture;
+    private int w, h;
+    
     public SeamCarver(Picture picture) {               // create a seam carver object based on the given picture
         if(picture == null) throw new IllegalArgumentException();
-        this.picture = new Picture(picture);
+        //this.picture = new Picture(picture);
+        this.w = picture.width();
+        this.h = picture.height();
+        this.newPicture = new int[w][h];
+        
+        for(int y = 0; y < h; y++) {
+            for(int x = 0; x < w; x++) {
+                newPicture[x][y] = picture.getRGB(x, y);
+            }
+        }
+        
     }
 
     public Picture picture() {              // current picture
-        return picture;
+        Picture p = new Picture(w,h);
+        for(int y = 0; y < h; y++) {
+            for(int x = 0; x < w; x++) {
+                p.setRGB(x, y, newPicture[x][y]);
+            }
+        }
+        return p;
     }
 
     public     int width()  {               // width of current picture
-        return picture.width();
+        return w;
     }
 
     public     int height()             {             // height of current picture
-        return picture.height();
+        return h;
     }
 
     public  double energy(int x, int y) {             // energy of pixel at column x and row y
-        int w = width(), h = height();
         
         if(x < 0 || x >= w || y < 0 || y >= h) { 
             throw new IllegalArgumentException();
@@ -33,8 +51,8 @@ public class SeamCarver {
         }
         
         // rgb & 0xFF = blue, rgb & 0xFF00 = green, rgb & 0xFF0000 = red
-        int xGradSq = gradientSquared(picture.getRGB(x - 1, y), picture.getRGB(x + 1, y));
-        int yGradSq = gradientSquared(picture.getRGB(x, y - 1), picture.getRGB(x, y + 1));
+        int xGradSq = gradientSquared(newPicture[x - 1][y], newPicture[x + 1][y]);
+        int yGradSq = gradientSquared(newPicture[x][y - 1], newPicture[x][y + 1]);
         
         return Math.sqrt(xGradSq + yGradSq);
         
@@ -54,12 +72,11 @@ public class SeamCarver {
     }
     
     public   int[] findHorizontalSeam()   {             // sequence of indices for horizontal seam
-        final int w = picture.width(), h = picture.height();
         Picture trans = new Picture(h, w);
         
         for(int y = 0; y < h; y++) {
-            for(int x =0; x < w; x++) {
-                trans.setRGB(y, x, picture.getRGB(x, y));
+            for(int x = 0; x < w; x++) {
+                trans.setRGB(y, x, newPicture[x][y]);
             }
         }
         
@@ -79,7 +96,6 @@ public class SeamCarver {
     }
     
     public   int[] findVerticalSeam()      {           // sequence of indices for vertical seam
-        final int w = picture.width(), h = picture.height();
         final int V = w * h;
         
         DirectedEdge [] edgeTo = new DirectedEdge[V];
@@ -89,11 +105,8 @@ public class SeamCarver {
             distTo[v] = Double.POSITIVE_INFINITY;
         }
         
-        for(int x = 0; x < w; x++) {
-            int start = edge(x, 0, w);
-            distTo[start] = energy(x,0);
-        }
-        
+        // TODO possible optimization - cache energyMatrix in the object and clear out
+        // the impact pixels when removing seams
         double [][] energyMatrix = new double[w][h];
         for (int y = 0; y < h - 1; y++) {
             for(int x = 0; x < w; x++) {
@@ -101,6 +114,10 @@ public class SeamCarver {
             }
         }
             
+        for(int x = 0; x < w; x++) {
+            distTo[x] = energyMatrix[x][0];
+        }
+        
         for (int y = 0; y < h - 1; y++) {
             for(int x = 0; x < w; x++) {
                 for(int curX = x-1; curX <= x+1; curX++) {
@@ -146,6 +163,44 @@ public class SeamCarver {
         */
     }
 
-    public    void removeHorizontalSeam(int[] seam) {}  // remove horizontal seam from current picture
-    public    void removeVerticalSeam(int[] seam)   {}  // remove vertical seam from current picture
+    public    void removeHorizontalSeam(int[] seam) {  // remove horizontal seam from current picture
+        removeHorizontalSeam(newPicture, w, h, seam);
+        h -= 1;
+    }
+    
+    static private void removeHorizontalSeam(int [][] pict, int width, int height, int [] seam) {
+        if(seam == null || seam.length != width) throw new IllegalArgumentException();
+        
+        int prevSeam = -1;
+        
+        for(int x = 0; x < width; x++) {
+            if(seam[x] < 0 || seam[x] >= height) throw new IllegalArgumentException();
+            
+            if(prevSeam != -1 && Math.abs(seam[x] - prevSeam) > 1) throw new IllegalArgumentException();
+            
+            System.arraycopy(pict[x], seam[x] + 1, pict[x], seam[x], height - seam[x] - 1);
+            
+            prevSeam = seam[x];
+        }
+    }
+    
+    public    void removeVerticalSeam(int[] seam)   {  // remove vertical seam from current picture
+        
+        int [][] trans = new int[h][w];
+        for(int x = 0; x < w; x++) {
+            for(int y = 0; y < h; y++) {
+                trans[y][x] = newPicture[x][y];
+            }
+        }
+    
+        removeHorizontalSeam(trans, h, w, seam);
+        
+        w -= 1;
+
+        for(int x = 0; x < w; x++) {
+            for(int y = 0; y < h; y++) {
+                newPicture[x][y] = trans[y][x];
+            }
+        }
+    }
 }
